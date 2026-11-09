@@ -746,7 +746,6 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
-
 -- 4. TP & SPAWNER TAB
 local function createButton(name, color, callback)
     local btn = Instance.new("TextButton")
@@ -781,19 +780,6 @@ createButton("TP to Random Chest", Color3.fromRGB(180, 120, 0), function()
         local rc = chests[math.random(1, #chests)]
         local char = localPlayer.Character
         if char and char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.CFrame = rc.CFrame + Vector3.new(0, 3, 0) end
-    end
-end)
-
-local dbCorner = Instance.new("UICorner") dbCorner.CornerRadius = UDim.new(1, 0) dbCorner.Parent = delayButton
-
-local spawnActiveLoop = false
-local spawnDelayTime = 0.5
-
-local delaySliding = false
-delayButton.MouseButton1Down:Connect(function() delaySliding = true end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        delaySliding = false
     end
 end)
 
@@ -1214,3 +1200,5 @@ Game: You vs Hulk
 • Fly Speed Slider & Quick Fly Floating Widget added.
 ]]
 infoLabel.Parent = pageInfo
+
+
