@@ -127,7 +127,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 35)
 titleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 titleLabel.BorderSizePixel = 0
-titleLabel.Text = "  YOU VS HULK — ULTIMATE MOD MENU (v9.26)"
+titleLabel.Text = "  YOU VS HULK — ULTIMATE MOD MENU (v9.20)"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 13
 titleLabel.Font = Enum.Font.Code
@@ -238,7 +238,7 @@ watermarkText.BackgroundTransparency = 1
 watermarkText.TextColor3 = Color3.fromRGB(0, 255, 128)
 watermarkText.TextSize = 11
 watermarkText.Font = Enum.Font.Code
-watermarkText.Text = "black | v9.26 Ultimate"
+watermarkText.Text = "black | v9.20 Ultimate"
 watermarkText.Parent = watermarkFrame
 
 -- UI HELPER FUNCTIONS
@@ -269,6 +269,41 @@ local function addToggleButton(parent, text, callback)
         callback(active)
     end)
     return btn
+end
+
+local function createFeatureWidget(featureName, callback)
+    local widget = Instance.new("TextButton")
+    widget.Size = UDim2.new(0, 95, 0, 45)
+    widget.Position = UDim2.new(0.5, -47, 0.5, -22)
+    widget.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    widget.BorderColor3 = Color3.fromRGB(0, 255, 128)
+    widget.BorderSizePixel = 2
+    widget.TextColor3 = Color3.fromRGB(255, 255, 255)
+    widget.TextSize = 10
+    widget.Font = Enum.Font.Code
+    widget.Text = featureName .. "\n[ OFF ]"
+    widget.Parent = screenGui
+    
+    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 4) c.Parent = widget
+    makeDraggable(widget)
+    
+    local active = false
+    local clicks = 0
+    widget.MouseButton1Click:Connect(function()
+        playClickSound()
+        clicks = clicks + 1
+        task.delay(0.3, function() clicks = 0 end)
+        if clicks >= 2 then widget:Destroy() return end
+        active = not active
+        if active then
+            widget.BackgroundColor3 = Color3.fromRGB(0, 100, 50)
+            widget.Text = featureName .. "\n[ ON ] (Dbl-tap del)"
+        else
+            widget.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            widget.Text = featureName .. "\n[ OFF ] (Dbl-tap del)"
+        end
+        callback(active)
+    end)
 end
 
 -- 1. MAIN & COMBAT
@@ -321,6 +356,21 @@ RunService.RenderStepped:Connect(function()
 end)
 
 local maxCombatDist = 150
+local widgetBtn1 = Instance.new("TextButton")
+widgetBtn1.Size = UDim2.new(0, 410, 0, 35)
+widgetBtn1.BackgroundColor3 = Color3.fromRGB(0, 80, 80)
+widgetBtn1.BorderSizePixel = 0
+widgetBtn1.TextColor3 = Color3.fromRGB(255, 255, 255)
+widgetBtn1.TextSize = 13
+widgetBtn1.Font = Enum.Font.Code
+widgetBtn1.Text = "Spawn Aimbot Floating Widget"
+widgetBtn1.Parent = pageMain
+local wc1 = Instance.new("UICorner") wc1.CornerRadius = UDim.new(0, 4) wc1.Parent = widgetBtn1
+widgetBtn1.MouseButton1Click:Connect(function()
+    playClickSound()
+    createFeatureWidget("Aimbot Quick", function(state) aimbotActive = state end)
+end)
+
 RunService.RenderStepped:Connect(function()
     local targetHulk = nil
     local shortestDist = math.huge
@@ -389,7 +439,6 @@ RunService.RenderStepped:Connect(function()
         end)
     end
 end)
-
 -- 2. ESP TAB
 local espKalanlarActive = false
 local espHulkActive = false
@@ -418,6 +467,21 @@ local c1 = Instance.new("Frame") c1.Size = UDim2.new(1, 0, 0, 2) c1.Position = U
 local c2 = Instance.new("Frame") c2.Size = UDim2.new(0, 2, 1, 0) c2.Position = UDim2.new(0.5, -1, 0, 0) c2.BackgroundColor3 = Color3.fromRGB(0, 255, 128) c2.BorderSizePixel = 0 c2.Parent = crosshairFrame
 
 addToggleButton(pageVisuals, "Custom Crosshair", function(state) crosshairFrame.Visible = state end)
+
+local widgetBtn2 = Instance.new("TextButton")
+widgetBtn2.Size = UDim2.new(0, 410, 0, 35)
+widgetBtn2.BackgroundColor3 = Color3.fromRGB(0, 80, 80)
+widgetBtn2.BorderSizePixel = 0
+widgetBtn2.TextColor3 = Color3.fromRGB(255, 255, 255)
+widgetBtn2.TextSize = 13
+widgetBtn2.Font = Enum.Font.Code
+widgetBtn2.Text = "Spawn ESP Floating Widget"
+widgetBtn2.Parent = pageVisuals
+local wc2 = Instance.new("UICorner") wc2.CornerRadius = UDim.new(0, 4) wc2.Parent = widgetBtn2
+widgetBtn2.MouseButton1Click:Connect(function()
+    playClickSound()
+    createFeatureWidget("ESP Quick", function(state) espHulkActive = state espKalanlarActive = state end)
+end)
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
@@ -550,7 +614,6 @@ UserInputService.JumpRequest:Connect(function()
         end)
     end
 end)
-
 -- FLY HIZ AYARI (FLY SPEED SLIDER)
 local flySpeedVal = 50
 local flySpeedFrame = Instance.new("Frame")
@@ -622,7 +685,6 @@ addToggleButton(pageMovement, "ShiftLock Smooth Fly", function(state)
     flyActive = state
 end)
 
--- HAREKET MOTORU (Duvara Yapışma ve Yön Sorunu Kesin Çözüm)
 RunService.RenderStepped:Connect(function()
     if flyActive and localPlayer.Character then
         pcall(function()
@@ -634,7 +696,7 @@ RunService.RenderStepped:Connect(function()
                 local moveDir = humanoid.MoveDirection
                 
                 if moveDir.Magnitude > 0 then
-                    root.Velocity = camCFrame.LookVector * (moveDir.Z * flySpeedVal) + camCFrame.RightVector * (moveDir.X * flySpeedVal)
+                    root.Velocity = camCFrame.LookVector * (moveDir.Z * -flySpeedVal) + camCFrame.RightVector * (moveDir.X * flySpeedVal) + Vector3.new(0, 0, 0)
                 else
                     root.Velocity = Vector3.new(0, 0, 0)
                 end
@@ -651,6 +713,36 @@ RunService.RenderStepped:Connect(function()
             end
         end)
     end
+end)
+
+local widgetBtnFly = Instance.new("TextButton")
+widgetBtnFly.Size = UDim2.new(0, 410, 0, 35)
+widgetBtnFly.BackgroundColor3 = Color3.fromRGB(0, 90, 60)
+widgetBtnFly.BorderSizePixel = 0
+widgetBtnFly.TextColor3 = Color3.fromRGB(255, 255, 255)
+widgetBtnFly.TextSize = 13
+widgetBtnFly.Font = Enum.Font.Code
+widgetBtnFly.Text = "Spawn Fly Floating Widget"
+widgetBtnFly.Parent = pageMovement
+local wcf = Instance.new("UICorner") wcf.CornerRadius = UDim.new(0, 4) wcf.Parent = widgetBtnFly
+widgetBtnFly.MouseButton1Click:Connect(function()
+    playClickSound()
+    createFeatureWidget("Fly Quick", function(state) flyActive = state end)
+end)
+
+local widgetBtn3 = Instance.new("TextButton")
+widgetBtn3.Size = UDim2.new(0, 410, 0, 35)
+widgetBtn3.BackgroundColor3 = Color3.fromRGB(80, 0, 80)
+widgetBtn3.BorderSizePixel = 0
+widgetBtn3.TextColor3 = Color3.fromRGB(255, 255, 255)
+widgetBtn3.TextSize = 13
+widgetBtn3.Font = Enum.Font.Code
+widgetBtn3.Text = "Spawn Speed Floating Widget"
+widgetBtn3.Parent = pageMovement
+local wc3 = Instance.new("UICorner") wc3.CornerRadius = UDim.new(0, 4) wc3.Parent = widgetBtn3
+widgetBtn3.MouseButton1Click:Connect(function()
+    playClickSound()
+    createFeatureWidget("Speed Quick", function(state) speedActive = state end)
 end)
 
 RunService.Heartbeat:Connect(function()
@@ -812,6 +904,7 @@ UserInputService.InputChanged:Connect(function(input)
         delayLabel.Text = string.format("Spawn Delay (Speed): %.2fs (%dms)", spawnDelayTime, math.floor(spawnDelayTime * 1000))
     end
 end)
+
 local function spawnTargetObject(nameOrId)
     pcall(function()
         local char = localPlayer.Character
@@ -966,7 +1059,6 @@ soundBtn.MouseButton1Click:Connect(function()
     soundEffectsEnabled = not soundEffectsEnabled
     if soundEffectsEnabled then soundBtn.Text = "🔊 Sound Effects: On" playClickSound() else soundBtn.Text = "🔇 Sound Effects: Off" end
 end)
-
 -- FOV Slider
 local fovSliderFrame = Instance.new("Frame")
 fovSliderFrame.Size = UDim2.new(0, 410, 0, 50)
@@ -1112,11 +1204,11 @@ infoLabel.TextWrapped = true
 infoLabel.Text = [[=== MENU INFORMATION ===
 
 Author / Creator: black
-Version: v9.26 Ultimate (Fly Wall-Stick Fixed)
+Version: v9.20 Ultimate (CoreGui Forced & Insert Key Hotkey)
 Game: You vs Hulk
 
 --- STATUS ---
-• Tool widgets removed, back to clean original layout.
-• Fly wall-stick / collision glitch resolved.
+• CoreGui injection prioritized so it bypasses UI hiding.
+• Press 'Insert' key on your keyboard if the menu button is hidden.
 ]]
 infoLabel.Parent = pageInfo
