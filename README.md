@@ -1204,7 +1204,7 @@ infoLabel.TextWrapped = true
 infoLabel.Text = [[=== MENU INFORMATION ===
 
 Author / Creator: black
-Version: v9.20 Ultimate (CoreGui Forced & Insert Key Hotkey)
+Version: v9.21 Ultimate (CoreGui Forced & Insert Key Hotkey)
 Game: You vs Hulk
 
 --- STATUS ---
