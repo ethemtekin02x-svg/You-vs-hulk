@@ -1,5 +1,5 @@
-# You-vs-hulk
--- Services
+-- Services & Safety Check
+local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -14,9 +14,9 @@ local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local mouse = localPlayer:GetMouse()
 
--- ScreenGui (Güvenli PlayerGui Yüklemesi)
-local playerGui = localPlayer:WaitForChild("PlayerGui")
-local existingGui = playerGui:FindFirstChild("YouVsHulkUltimateMod")
+-- ScreenGui (CoreGui Öncelikli Güvenli Yükleme)
+local targetParent = pcall(function() return CoreGui end) and CoreGui or localPlayer:WaitForChild("PlayerGui")
+local existingGui = targetParent:FindFirstChild("YouVsHulkUltimateMod")
 if existingGui then existingGui:Destroy() end
 
 local screenGui = Instance.new("ScreenGui")
@@ -24,7 +24,7 @@ screenGui.Name = "YouVsHulkUltimateMod"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.DisplayOrder = 999999
-screenGui.Parent = playerGui
+screenGui.Parent = targetParent
 
 local isMenuLocked = false
 local soundEffectsEnabled = true
@@ -114,14 +114,22 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
+-- KLAVYE KISAYOLU: INSERT TUŞU İLE MENÜYÜ AÇ/KAPAT
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Insert then
+        playClickSound()
+        mainFrame.Visible = not mainFrame.Visible
+    end
+end)
+
 -- Title & Stats
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 35)
 titleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 titleLabel.BorderSizePixel = 0
-titleLabel.Text = "  YOU VS HULK — ULTIMATE MOD MENU"
+titleLabel.Text = "  YOU VS HULK — ULTIMATE MOD MENU (v9.20)"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.TextSize = 14
+titleLabel.TextSize = 13
 titleLabel.Font = Enum.Font.Code
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = mainFrame
@@ -230,7 +238,7 @@ watermarkText.BackgroundTransparency = 1
 watermarkText.TextColor3 = Color3.fromRGB(0, 255, 128)
 watermarkText.TextSize = 11
 watermarkText.Font = Enum.Font.Code
-watermarkText.Text = "black | v9.19 Ultimate"
+watermarkText.Text = "black | v9.20 Ultimate"
 watermarkText.Parent = watermarkFrame
 
 -- UI HELPER FUNCTIONS
@@ -324,24 +332,26 @@ end)
 
 RunService.RenderStepped:Connect(function()
     if hitboxActive then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= localPlayer and player.Character then
-                local char = player.Character
-                if isCharacterHulk(char) then
-                    local head = char:FindFirstChild("Head")
-                    local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
-                    if head then
-                        head.Size = Vector3.new(6, 6, 6)
-                        head.Transparency = 0.6
-                        head.CanCollide = false
-                    end
-                    if torso then
-                        torso.Size = Vector3.new(7, 8, 7)
-                        torso.Transparency = 0.8
+        pcall(function()
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= localPlayer and player.Character then
+                    local char = player.Character
+                    if isCharacterHulk(char) then
+                        local head = char:FindFirstChild("Head")
+                        local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+                        if head then
+                            head.Size = Vector3.new(6, 6, 6)
+                            head.Transparency = 0.6
+                            head.CanCollide = false
+                        end
+                        if torso then
+                            torso.Size = Vector3.new(7, 8, 7)
+                            torso.Transparency = 0.8
+                        end
                     end
                 end
             end
-        end
+        end)
     end
 end)
 
@@ -365,49 +375,51 @@ RunService.RenderStepped:Connect(function()
     local targetHulk = nil
     local shortestDist = math.huge
     
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character then
-            local char = player.Character
-            if isCharacterHulk(char) and char:FindFirstChild("Head") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
-                local head = char.Head
-                local myRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-                
-                if myRoot then
-                    local dist = (head.Position - myRoot.Position).Magnitude
-                    if dist <= maxCombatDist then
-                        local rayParams = RaycastParams.new()
-                        rayParams.FilterDescendantsInstances = {localPlayer.Character, camera}
-                        rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-                        rayParams.IgnoreWater = true
-                        
-                        local rayDirection = (head.Position - camera.CFrame.Position)
-                        local rayResult = workspace:Raycast(camera.CFrame.Position, rayDirection, rayParams)
-                        
-                        local isVisible = true
-                        if rayResult and not rayResult.Instance:IsDescendantOf(char) then
-                            isVisible = false
-                        end
-                        
-                        if isVisible then
-                            local passFov = true
-                            if fovLockActive then
-                                local sp, onScreen = camera:WorldToViewportPoint(head.Position)
-                                if onScreen then
-                                    local mDist = (Vector2.new(sp.X, sp.Y) - Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)).Magnitude
-                                    if mDist > 100 then passFov = false end
-                                else passFov = false end
+    pcall(function()
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= localPlayer and player.Character then
+                local char = player.Character
+                if isCharacterHulk(char) and char:FindFirstChild("Head") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                    local head = char.Head
+                    local myRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    
+                    if myRoot then
+                        local dist = (head.Position - myRoot.Position).Magnitude
+                        if dist <= maxCombatDist then
+                            local rayParams = RaycastParams.new()
+                            rayParams.FilterDescendantsInstances = {localPlayer.Character, camera}
+                            rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                            rayParams.IgnoreWater = true
+                            
+                            local rayDirection = (head.Position - camera.CFrame.Position)
+                            local rayResult = workspace:Raycast(camera.CFrame.Position, rayDirection, rayParams)
+                            
+                            local isVisible = true
+                            if rayResult and not rayResult.Instance:IsDescendantOf(char) then
+                                isVisible = false
                             end
                             
-                            if passFov and dist < shortestDist then
-                                shortestDist = dist
-                                targetHulk = head
+                            if isVisible then
+                                local passFov = true
+                                if fovLockActive then
+                                    local sp, onScreen = camera:WorldToViewportPoint(head.Position)
+                                    if onScreen then
+                                        local mDist = (Vector2.new(sp.X, sp.Y) - Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)).Magnitude
+                                        if mDist > 100 then passFov = false end
+                                    else passFov = false end
+                                end
+                                
+                                if passFov and dist < shortestDist then
+                                    shortestDist = dist
+                                    targetHulk = head
+                                end
                             end
                         end
                     end
                 end
             end
         end
-    end
+    end)
     
     if aimbotActive and targetHulk then
         camera.CFrame = CFrame.new(camera.CFrame.Position, targetHulk.Position)
@@ -427,7 +439,6 @@ RunService.RenderStepped:Connect(function()
         end)
     end
 end)
-
 -- 2. ESP TAB
 local espKalanlarActive = false
 local espHulkActive = false
@@ -473,50 +484,52 @@ widgetBtn2.MouseButton1Click:Connect(function()
 end)
 
 RunService.RenderStepped:Connect(function()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character then
-            local char = player.Character
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local myHrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp and myHrp then
-                local dist = math.floor((hrp.Position - myHrp.Position).Magnitude)
-                local isHulk = isCharacterHulk(char)
-                local billboard = char:FindFirstChild("ModESPBillboard")
-                if not billboard then
-                    billboard = Instance.new("BillboardGui")
-                    billboard.Name = "ModESPBillboard"
-                    billboard.Size = UDim2.new(0, 100, 0, 40)
-                    billboard.StudsOffset = Vector3.new(0, 3, 0)
-                    billboard.AlwaysOnTop = true
-                    local txt = Instance.new("TextLabel")
-                    txt.Name = "ESPText"
-                    txt.Size = UDim2.new(1, 0, 1, 0)
-                    txt.BackgroundTransparency = 1
-                    txt.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    txt.TextStrokeTransparency = 0
-                    txt.TextSize = 12
-                    txt.Font = Enum.Font.Code
-                    txt.Parent = billboard
-                    billboard.Parent = char
+    pcall(function()
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= localPlayer and player.Character then
+                local char = player.Character
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local myHrp = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and myHrp then
+                    local dist = math.floor((hrp.Position - myHrp.Position).Magnitude)
+                    local isHulk = isCharacterHulk(char)
+                    local billboard = char:FindFirstChild("ModESPBillboard")
+                    if not billboard then
+                        billboard = Instance.new("BillboardGui")
+                        billboard.Name = "ModESPBillboard"
+                        billboard.Size = UDim2.new(0, 100, 0, 40)
+                        billboard.StudsOffset = Vector3.new(0, 3, 0)
+                        billboard.AlwaysOnTop = true
+                        local txt = Instance.new("TextLabel")
+                        txt.Name = "ESPText"
+                        txt.Size = UDim2.new(1, 0, 1, 0)
+                        txt.BackgroundTransparency = 1
+                        txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        txt.TextStrokeTransparency = 0
+                        txt.TextSize = 12
+                        txt.Font = Enum.Font.Code
+                        txt.Parent = billboard
+                        billboard.Parent = char
+                    end
+                    local textLabel = billboard:FindFirstChild("ESPText")
+                    local show = false
+                    if isHulk and espHulkActive then
+                        textLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                        textLabel.Text = "HULK\n[" .. dist .. "m]"
+                        show = true
+                    elseif not isHulk and espKalanlarActive then
+                        textLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+                        textLabel.Text = player.Name .. "\n[" .. dist .. "m]"
+                        show = true
+                    end
+                    billboard.Enabled = show
                 end
-                local textLabel = billboard:FindFirstChild("ESPText")
-                local show = false
-                if isHulk and espHulkActive then
-                    textLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-                    textLabel.Text = "HULK\n[" .. dist .. "m]"
-                    show = true
-                elseif not isHulk and espKalanlarActive then
-                    textLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-                    textLabel.Text = player.Name .. "\n[" .. dist .. "m]"
-                    show = true
-                end
-                billboard.Enabled = show
             end
         end
-    end
+    end)
 end)
 
--- 3. MOVEMENT TAB (Speed, Noclip, Infinite Jump, Fly + Fly Speed Slider & Fly Quick Widget)
+-- 3. MOVEMENT TAB
 local speedValue = 16
 local speedActive = false
 addToggleButton(pageMovement, "Speed Hack Active", function(state) speedActive = state end)
@@ -601,7 +614,6 @@ UserInputService.JumpRequest:Connect(function()
         end)
     end
 end)
-
 -- FLY HIZ AYARI (FLY SPEED SLIDER)
 local flySpeedVal = 50
 local flySpeedFrame = Instance.new("Frame")
@@ -668,7 +680,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- SHIFTLOCK / AKICI UÇMA SİSTEMİ (Düşme Animasyonu Engelli)
 local flyActive = false
 addToggleButton(pageMovement, "ShiftLock Smooth Fly", function(state)
     flyActive = state
@@ -680,7 +691,7 @@ RunService.RenderStepped:Connect(function()
             local root = localPlayer.Character:FindFirstChild("HumanoidRootPart")
             local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
             if root and humanoid then
-                humanoid.PlatformStand = true -- Karakterin düşme animasyonunu (el havada kalmasını) tamamen keser
+                humanoid.PlatformStand = true
                 local camCFrame = camera.CFrame
                 local moveDir = humanoid.MoveDirection
                 
@@ -704,7 +715,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- UÇMA İÇİN ÖZEL KISAYOL TUŞU (FLY FLOATING WIDGET) BUTONU
 local widgetBtnFly = Instance.new("TextButton")
 widgetBtnFly.Size = UDim2.new(0, 410, 0, 35)
 widgetBtnFly.BackgroundColor3 = Color3.fromRGB(0, 90, 60)
@@ -736,16 +746,19 @@ widgetBtn3.MouseButton1Click:Connect(function()
 end)
 
 RunService.Heartbeat:Connect(function()
-    if localPlayer.Character then
-        local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid and speedActive and not flyActive then humanoid.WalkSpeed = speedValue end
-        if noclipActive then
-            for _, part in pairs(localPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
+    pcall(function()
+        if localPlayer.Character then
+            local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and speedActive and not flyActive then humanoid.WalkSpeed = speedValue end
+            if noclipActive then
+                for _, part in pairs(localPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
             end
         end
-    end
+    end)
 end)
+
 -- 4. TP & SPAWNER TAB
 local function createButton(name, color, callback)
     local btn = Instance.new("TextButton")
@@ -959,7 +972,6 @@ spawnToggleBtn.MouseButton1Click:Connect(function()
         spawnToggleBtn.Text = "Spawner [ OFF ]"
     end
 end)
-
 -- 5. SETTINGS TAB
 local function createSettingsHeader(text)
     local lbl = Instance.new("TextLabel")
@@ -1192,13 +1204,11 @@ infoLabel.TextWrapped = true
 infoLabel.Text = [[=== MENU INFORMATION ===
 
 Author / Creator: black
-Version: v9.19 Ultimate (Fly Animation & Fly Speed / Widget Fixed)
+Version: v9.20 Ultimate (CoreGui Forced & Insert Key Hotkey)
 Game: You vs Hulk
 
 --- STATUS ---
-• Flying falling animation bug fixed (PlatformStand applied).
-• Fly Speed Slider & Quick Fly Floating Widget added.
+• CoreGui injection prioritized so it bypasses UI hiding.
+• Press 'Insert' key on your keyboard if the menu button is hidden.
 ]]
 infoLabel.Parent = pageInfo
-
-
