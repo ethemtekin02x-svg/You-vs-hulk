@@ -1129,7 +1129,6 @@ soundBtn.MouseButton1Click:Connect(function()
         soundBtn.Text = (currentLang == "TR") and "Ses Efektleri: Kapalı" or ((currentLang == "EN") and "Sound Effects: Off" or "Звуковые эффекты: ВЫКЛ")
     end
 end)
-
 -- FOV Slider
 local fovSliderFrame = Instance.new("Frame") fovSliderFrame.Size = UDim2.new(0, 410, 0, 50) fovSliderFrame.BackgroundTransparency = 1 fovSliderFrame.Parent = pageSettings
 local fovSliderLabel = Instance.new("TextLabel") fovSliderLabel.Size = UDim2.new(1, 0, 0, 20) fovSliderLabel.BackgroundTransparency = 1 fovSliderLabel.Text = "Kamera Görüş Açısı (FOV): 70" fovSliderLabel.TextColor3 = Color3.fromRGB(200, 200, 200) fovSliderLabel.TextSize = 12 fovSliderLabel.Font = Enum.Font.Code fovSliderLabel.TextXAlignment = Enum.TextXAlignment.Left fovSliderLabel.Parent = fovSliderFrame
@@ -1159,4 +1158,58 @@ end)
 
 addToggleButton(pageSettings, "Hızlı Otomatik Yeniden Doğuş", "Quick Auto Respawn", "Bystroe avto-vozrozhdenie", function(state)
     if state then
-        pcall(fun
+        pcall(function()
+            localPlayer.CharacterAdded:Connect(function(char)
+                local hum = char:WaitForChild("Humanoid")
+                hum.Died:Connect(function() task.wait(0.5) pcall(function() localPlayer:LoadCharacter() end) end)
+            end)
+        end)
+    end
+end)
+
+perfBtn = Instance.new("TextButton") perfBtn.Size = UDim2.new(0, 410, 0, 35) perfBtn.BackgroundColor3 = Color3.fromRGB(100, 80, 0) perfBtn.BorderSizePixel = 0 perfBtn.TextColor3 = Color3.fromRGB(255, 255, 255) perfBtn.TextSize = 13 perfBtn.Font = Enum.Font.Code perfBtn.Text = "Performans Artırıcı [ KAPALI ]" perfBtn.Parent = pageSettings
+local pfc = Instance.new("UICorner") pfc.CornerRadius = UDim.new(0, 4) pfc.Parent = perfBtn
+
+local performanceActive = false
+perfBtn.MouseButton1Click:Connect(function()
+    playClickSound()
+    performanceActive = not performanceActive
+    pcall(function()
+        if performanceActive then
+            perfBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 60)
+            perfBtn.Text = (currentLang == "TR") and "Performans Artırıcı [ AÇIK ]" or ((currentLang == "EN") and "Performance Booster [ ON ]" or "Ускоритель [ ВКЛ ]")
+            Lighting.GlobalShadows = false Lighting.Brightness = 2
+            for _, v in pairs(Workspace:GetDescendants()) do if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic v.Reflectance = 0 end end
+        else
+            perfBtn.BackgroundColor3 = Color3.fromRGB(100, 80, 0)
+            perfBtn.Text = (currentLang == "TR") and "Performans Artırıcı [ KAPALI ]" or ((currentLang == "EN") and "Performance Booster [ OFF ]" or "Ускоритель [ ВЫКЛ ]")
+            Lighting.GlobalShadows = true Lighting.Brightness = 1
+            for _, v in pairs(Workspace:GetDescendants()) do if v:IsA("BasePart") then v.Material = Enum.Material.Plastic v.Reflectance = 0 end end
+        end
+    end)
+end)
+
+panicBtn = Instance.new("TextButton") panicBtn.Size = UDim2.new(0, 410, 0, 35) panicBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0) panicBtn.BorderSizePixel = 0 panicBtn.TextColor3 = Color3.fromRGB(255, 255, 255) panicBtn.TextSize = 13 panicBtn.Font = Enum.Font.Code panicBtn.Text = "Acil Durum Tuşu (Menüyü Gizle)" panicBtn.Parent = pageSettings
+local pnc = Instance.new("UICorner") pnc.CornerRadius = UDim.new(0, 4) pnc.Parent = panicBtn
+panicBtn.MouseButton1Click:Connect(function() playClickSound() mainFrame.Visible = false toggleBtn.Visible = not toggleBtn.Visible end)
+
+-- 6. INFO TAB
+local infoLabel = Instance.new("TextLabel")
+infoLabel.Size = UDim2.new(1, -20, 1, -20)
+infoLabel.BackgroundTransparency = 1
+infoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+infoLabel.TextSize = 13
+infoLabel.Font = Enum.Font.Code
+infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+infoLabel.TextWrapped = true
+infoLabel.Text = [[=== MENÜ BİLGİSİ ===
+
+Yazar / Oluşturan: black
+Sürüm: v9.47 Ultimate (Tam Dil Senkronizasyonu)
+Oyun: You vs Hulk
+
+--- DURUM ---
+• Rusça ve diğer diller seçildiğinde tüm menü öğeleri anında güncellenir.
+]]
+infoLabel.Parent = pageInfo
