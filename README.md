@@ -141,7 +141,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 35)
 titleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 titleLabel.BorderSizePixel = 0
-titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.47)"
+titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.49)"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 13
 titleLabel.Font = Enum.Font.Code
@@ -259,7 +259,7 @@ watermarkText.BackgroundTransparency = 1
 watermarkText.TextColor3 = Color3.fromRGB(0, 255, 128)
 watermarkText.TextSize = 11
 watermarkText.Font = Enum.Font.Code
-watermarkText.Text = "black | v9.47 Ultimate"
+watermarkText.Text = "black | v9.49 Ultimate"
 watermarkText.Parent = watermarkFrame
 
 -- TRANSLATABLE BUTTON REGISTRY
@@ -301,7 +301,7 @@ local function addToggleButton(parent, textTR, textEN, textRU, callback)
     return btn
 end
 
--- 1. MAIN & COMBAT
+-- 1. MAIN & COMBAT (HULK FLING & WALLBANG & AIMBOT)
 local function isCharacterHulk(char)
     if not char then return false end
     for _, obj in pairs(char:GetDescendants()) do
@@ -319,6 +319,13 @@ addToggleButton(pageMain, "Oto Tetikçi (Auto Ateş)", "Auto Triggerbot (Auto Sh
 
 local fovLockActive = false
 addToggleButton(pageMain, "FOV Hedef Kilidi", "FOV Target Lock", "Блокировка цели по FOV", function(state) fovLockActive = state end)
+
+local wallbangActive = false
+addToggleButton(pageMain, "Duvar Arkası Vuruş (Wallbang)", "Wallbang (Shoot Through Walls)", "Стрельба сквозь стены (Wallbang)", function(state) wallbangActive = state end)
+
+-- HULK FLING (SADECE HULK OLDUĞUNDA ETRAFI UÇURMA / HARİTA DIŞINA FIRLATMA)
+local hulkFlingActive = false
+addToggleButton(pageMain, "Hulk Fling (Hulk Oyuncu Fırlatıcı)", "Hulk Fling (Launch Players)", "Hulk Fling (Запуск игроков)", function(state) hulkFlingActive = state end)
 
 local hitboxActive = false
 addToggleButton(pageMain, "Hulk Hitbox Büyütücü", "Hulk Hitbox Extender (Big Target)", "Увеличенный хитбокс Халка", function(state) hitboxActive = state end)
@@ -341,6 +348,34 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- HULK FLING ÇALIŞTIRICI (Sadece yerel oyuncu Hulk ise veya Hulk karakteri etrafındaki herkesi fırlatır)
+RunService.Heartbeat:Connect(function()
+    if hulkFlingActive then
+        pcall(function()
+            local myChar = localPlayer.Character
+            if myChar and isCharacterHulk(myChar) then
+                local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+                if myRoot then
+                    for _, player in pairs(Players:GetPlayers()) do
+                        if player ~= localPlayer and player.Character then
+                            local enemyChar = player.Character
+                            local enemyRoot = enemyChar:FindFirstChild("HumanoidRootPart")
+                            if enemyRoot and not isCharacterHulk(enemyChar) then
+                                local dist = (enemyRoot.Position - myRoot.Position).Magnitude
+                                if dist <= 18 then
+                                    -- Harita dışına / gökyüzüne fırlatma kuvveti (Velocity & AngularVelocity)
+                                    enemyRoot.AssemblyLinearVelocity = Vector3.new(math.random(-300, 300), 500, math.random(-300, 300))
+                                    enemyRoot.AssemblyAngularVelocity = Vector3.new(5000, 5000, 5000)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
 local maxCombatDist = 150
 RunService.RenderStepped:Connect(function()
     local targetHulk = nil
@@ -355,11 +390,15 @@ RunService.RenderStepped:Connect(function()
                     if myRoot then
                         local dist = (head.Position - myRoot.Position).Magnitude
                         if dist <= maxCombatDist then
-                            local rayParams = RaycastParams.new()
-                            rayParams.FilterDescendantsInstances = {localPlayer.Character, camera}
-                            rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-                            local rayResult = workspace:Raycast(camera.CFrame.Position, head.Position - camera.CFrame.Position, rayParams)
-                            local isVisible = not (rayResult and not rayResult.Instance:IsDescendantOf(char))
+                            local isVisible = true
+                            if not wallbangActive then
+                                local rayParams = RaycastParams.new()
+                                rayParams.FilterDescendantsInstances = {localPlayer.Character, camera}
+                                rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                                local rayResult = workspace:Raycast(camera.CFrame.Position, head.Position - camera.CFrame.Position, rayParams)
+                                isVisible = not (rayResult and not rayResult.Instance:IsDescendantOf(char))
+                            end
+
                             if isVisible then
                                 local passFov = true
                                 if fovLockActive then
@@ -391,14 +430,12 @@ RunService.RenderStepped:Connect(function()
         end)
     end
 end)
-
 -- 2. ESP TAB
 local espKalanlarActive = false
 local espHulkActive = false
 addToggleButton(pageVisuals, "Oyuncu ESP", "Players ESP", "ESP Игроков", function(state) espKalanlarActive = state end)
 addToggleButton(pageVisuals, "Hulk ESP", "Hulk ESP", "ESP Халка", function(state) espHulkActive = state end)
 
--- FOV Çemberi (Tam Merkez Hizalı / Perfect Center)
 local fovFrame = Instance.new("Frame")
 fovFrame.Size = UDim2.new(0, 200, 0, 200)
 fovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -411,7 +448,6 @@ local fovStroke = Instance.new("UIStroke") fovStroke.Thickness = 1.5 fovStroke.C
 
 addToggleButton(pageVisuals, "FOV Çemberi", "FOV Circle", "Круг FOV", function(state) fovFrame.Visible = state end)
 
--- Özel Nişangah (Crosshair - Tam Merkez Hizalı)
 local crosshairFrame = Instance.new("Frame")
 crosshairFrame.Size = UDim2.new(0, 10, 0, 10)
 crosshairFrame.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -456,6 +492,7 @@ RunService.RenderStepped:Connect(function()
         end
     end)
 end)
+
 -- 3. MOVEMENT TAB
 local speedValue = 16
 local speedActive = false
@@ -663,7 +700,6 @@ createButton(pageWorld, "Rastgele Kasaya / Sandığa Işınlan", "TP to Random C
         local char = localPlayer.Character if char and char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.CFrame = rc.CFrame + Vector3.new(0, 3, 0) end
     end
 end)
-
 -- OBJECT SPAWNER
 local spawnerBoxFrame = Instance.new("Frame")
 spawnerBoxFrame.Size = UDim2.new(0, 410, 0, 155)
@@ -821,6 +857,7 @@ local function spawnTargetObject(nameOrId)
         end
     end)
 end
+
 spawnToggleBtn.MouseButton1Click:Connect(function()
     playClickSound()
     spawnActiveLoop = not spawnActiveLoop
@@ -1039,25 +1076,57 @@ local langPickerFrame = Instance.new("Frame") langPickerFrame.Size = UDim2.new(0
 local lpLayout = Instance.new("UIListLayout") lpLayout.FillDirection = Enum.FillDirection.Horizontal lpLayout.Padding = UDim.new(0, 10) lpLayout.Parent = langPickerFrame
 
 -- GLOBAL TRANSLATION UPDATE FUNCTION
-local panicBtn, soundBtn, perfBtn
+local panicBtn, soundBtn, perfBtn, infoLabel
 
 local function updateLanguage(langCode)
     currentLang = langCode
     if langCode == "TR" then
-        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.47 [TÜRKÇE])"
+        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.49 [TÜRKÇE])"
         if panicBtn then panicBtn.Text = "Acil Durum Tuşu (Menüyü Gizle)" end
-        if soundBtn then soundBtn.Text = soundBtn.Text:find("Açık") and "Ses Efektleri: Açık" or "Ses Efektleri: Kapalı" end
-        if perfBtn then perfBtn.Text = perfBtn.Text:find("Açık") and "Performans Artırıcı [ AÇIK ]" or "Performans Artırıcı [ KAPALI ]" end
+        if soundBtn then soundBtn.Text = "Ses Efektleri: Açık" end
+        if perfBtn then perfBtn.Text = "Performans Artırıcı [ KAPALI ]" end
+        if infoLabel then
+            infoLabel.Text = [[=== MENÜ BİLGİSİ ===
+
+Yazar / Oluşturan: black
+Sürüm: v9.49 Ultimate (Hulk Fling Eklendi)
+Oyun: You vs Hulk
+--- DURUM ---
+• Hulk Fling (Oyuncu Fırlatma) özelliği aktif edildi.
+]]
+        end
     elseif langCode == "EN" then
-        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.47 [ENGLISH])"
+        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.49 [ENGLISH])"
         if panicBtn then panicBtn.Text = "Panic Button (Hide Menu)" end
-        if soundBtn then soundBtn.Text = soundBtn.Text:find("Açık") and "Sound Effects: On" or "Sound Effects: Off" end
-        if perfBtn then perfBtn.Text = perfBtn.Text:find("Açık") and "Performance Booster [ ON ]" or "Performance Booster [ OFF ]" end
+        if soundBtn then soundBtn.Text = "Sound Effects: On" end
+        if perfBtn then perfBtn.Text = "Performance Booster [ OFF ]" end
+        if infoLabel then
+            infoLabel.Text = [[=== MENU INFORMATION ===
+
+Author / Creator: black
+Version: v9.49 Ultimate (Hulk Fling Added)
+Game: You vs Hulk
+
+--- STATUS ---
+• Hulk Fling (Player Launcher) feature enabled.
+]]
+        end
     else
-        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.47 [РУССКИЙ])"
+        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.49 [РУССКИЙ])"
         if panicBtn then panicBtn.Text = "Кнопка паники (Скрыть меню)" end
-        if soundBtn then soundBtn.Text = soundBtn.Text:find("Açık") and "Звуковые эффекты: ВКЛ" or "Звуковые эффекты: ВЫКЛ" end
-        if perfBtn then perfBtn.Text = perfBtn.Text:find("Açık") and "Ускоритель [ ВКЛ ]" or "Ускоритель [ ВЫКЛ ]" end
+        if soundBtn then soundBtn.Text = "Звуковые эффекты: ВКЛ" end
+        if perfBtn then perfBtn.Text = "Ускоритель [ ВЫКЛ ]" end
+        if infoLabel then
+            infoLabel.Text = [[=== ИНФОРМАЦИЯ О МЕНЮ ===
+
+Автор / Создатель: black
+Версия: v9.49 Ultimate (Добавлен Hulk Fling)
+Игра: You vs Hulk
+
+--- СТАТУС ---
+• Функция Hulk Fling включена.
+]]
+        end
     end
 
     for _, btn in pairs(tabButtons) do
@@ -1070,146 +1139,4 @@ local function updateLanguage(langCode)
         if el:IsA("TextButton") then
             local base = (langCode == "TR") and el:GetAttribute("TextTR") or ((langCode == "EN") and el:GetAttribute("TextEN") or el:GetAttribute("TextRU"))
             if el.Text:find("AÇIK") or el.Text:find("ON") or el.Text:find("ВКЛ") then
-                local onSuffix = (langCode == "TR") and " [ AÇIK ]" or ((langCode == "EN") and " [ ON ]" or " [ ВКЛ ]")
-                el.Text = base .. onSuffix
-            else
-                local offSuffix = (langCode == "TR") and " [ KAPALI ]" or ((langCode == "EN") and " [ OFF ]" or " [ ВЫКЛ ]")
-                el.Text = base .. offSuffix
-            end
-        elseif el:IsA("TextLabel") then
-            local lblBase = (langCode == "TR") and el:GetAttribute("TextTR") or ((langCode == "EN") and el:GetAttribute("TextEN") or el:GetAttribute("TextRU"))
-            el.Text = "--- " .. lblBase .. " ---"
-        end
-    end
-end
-
-local function addLangOption(langCode, flagEmoji, langName)
-    local b = Instance.new("TextButton") b.Size = UDim2.new(0, 130, 0, 40) b.BackgroundColor3 = Color3.fromRGB(35, 35, 35) b.Text = flagEmoji .. " " .. langName b.TextColor3 = Color3.fromRGB(255, 255, 255) b.TextSize = 11 b.Font = Enum.Font.Code b.Parent = langPickerFrame
-    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 4) c.Parent = b
-    b.MouseButton1Click:Connect(function() playClickSound() updateLanguage(langCode) end)
-end
-
-addLangOption("TR", "🇹🇷", "Türkçe")
-addLangOption("EN", "🇺🇸", "English")
-addLangOption("RU", "🇷🇺", "Русский")
-
-createSettingsHeader("GÖRÜNÜM VE TEMA", "APPEARANCE & THEME", "ВНЕШНИЙ ВИД И ТЕМА")
-
-local colorPickerFrame = Instance.new("Frame") colorPickerFrame.Size = UDim2.new(0, 410, 0, 120) colorPickerFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) colorPickerFrame.BorderColor3 = Color3.fromRGB(0, 255, 128) colorPickerFrame.BorderSizePixel = 1 colorPickerFrame.Visible = false colorPickerFrame.Parent = pageSettings
-local cpLayout = Instance.new("UIGridLayout") cpLayout.CellSize = UDim2.new(0, 125, 0, 30) cpLayout.CellPadding = UDim2.new(0, 5, 0, 5) cpLayout.Parent = colorPickerFrame
-
-local function addColorOption(name, col)
-    local b = Instance.new("TextButton") b.BackgroundColor3 = col b.Text = name b.TextColor3 = Color3.fromRGB(255, 255, 255) b.TextSize = 11 b.Font = Enum.Font.Code b.Parent = colorPickerFrame
-    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 4) c.Parent = b
-    b.MouseButton1Click:Connect(function() playClickSound() mainFrame.BackgroundColor3 = col toggleBtn.BackgroundColor3 = col end)
-end
-
-addColorOption("Klasik Siyah", Color3.fromRGB(20, 20, 20))
-addColorOption("Derin Kırmızı", Color3.fromRGB(120, 0, 0))
-addColorOption("Lacivert", Color3.fromRGB(0, 50, 120))
-addColorOption("Zümrüt Yeşili", Color3.fromRGB(0, 100, 50))
-addColorOption("Siber Mor", Color3.fromRGB(75, 0, 130))
-addColorOption("Gün Batımı", Color3.fromRGB(200, 80, 0))
-
-local paletteBtn = Instance.new("TextButton") paletteBtn.Size = UDim2.new(0, 410, 0, 35) paletteBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60) paletteBtn.BorderSizePixel = 0 paletteBtn.TextColor3 = Color3.fromRGB(255, 255, 255) paletteBtn.TextSize = 13 paletteBtn.Font = Enum.Font.Code paletteBtn.Text = "Renk Paletini Aç / Kapat" paletteBtn.Parent = pageSettings
-local pc = Instance.new("UICorner") pc.CornerRadius = UDim.new(0, 4) pc.Parent = paletteBtn
-paletteBtn.MouseButton1Click:Connect(function() playClickSound() colorPickerFrame.Visible = not colorPickerFrame.Visible end)
-
-createSettingsHeader("KONTROLLER VE PERFORMANS", "CONTROLS & PERFORMANCE", "УПРАВЛЕНИЕ И ПРОИЗВОДИТЕЛЬНОСТЬ")
-addToggleButton(pageSettings, "Menü Konumunu Kilitle", "Lock Menu Position", "Заблокировать позицию меню", function(state) isMenuLocked = state end)
-
-soundBtn = Instance.new("TextButton") soundBtn.Size = UDim2.new(0, 410, 0, 35) soundBtn.BackgroundColor3 = Color3.fromRGB(0, 80, 100) soundBtn.BorderSizePixel = 0 soundBtn.TextColor3 = Color3.fromRGB(255, 255, 255) soundBtn.TextSize = 13 soundBtn.Font = Enum.Font.Code soundBtn.Text = "Ses Efektleri: Açık" soundBtn.Parent = pageSettings
-local sbc = Instance.new("UICorner") sbc.CornerRadius = UDim.new(0, 4) sbc.Parent = soundBtn
-soundBtn.MouseButton1Click:Connect(function()
-    soundEffectsEnabled = not soundEffectsEnabled
-    if soundEffectsEnabled then
-        soundBtn.Text = (currentLang == "TR") and "Ses Efektleri: Açık" or ((currentLang == "EN") and "Sound Effects: On" or "Звуковые эффекты: ВКЛ")
-        playClickSound()
-    else
-        soundBtn.Text = (currentLang == "TR") and "Ses Efektleri: Kapalı" or ((currentLang == "EN") and "Sound Effects: Off" or "Звуковые эффекты: ВЫКЛ")
-    end
-end)
--- FOV Slider
-local fovSliderFrame = Instance.new("Frame") fovSliderFrame.Size = UDim2.new(0, 410, 0, 50) fovSliderFrame.BackgroundTransparency = 1 fovSliderFrame.Parent = pageSettings
-local fovSliderLabel = Instance.new("TextLabel") fovSliderLabel.Size = UDim2.new(1, 0, 0, 20) fovSliderLabel.BackgroundTransparency = 1 fovSliderLabel.Text = "Kamera Görüş Açısı (FOV): 70" fovSliderLabel.TextColor3 = Color3.fromRGB(200, 200, 200) fovSliderLabel.TextSize = 12 fovSliderLabel.Font = Enum.Font.Code fovSliderLabel.TextXAlignment = Enum.TextXAlignment.Left fovSliderLabel.Parent = fovSliderFrame
-
-local fovSliderTrack = Instance.new("Frame") fovSliderTrack.Size = UDim2.new(1, 0, 0, 6) fovSliderTrack.Position = UDim2.new(0, 0, 0, 30) fovSliderTrack.BackgroundColor3 = Color3.fromRGB(50, 50, 50) fovSliderTrack.BorderSizePixel = 0 fovSliderTrack.Parent = fovSliderFrame
-local ftCorner = Instance.new("UICorner") ftCorner.CornerRadius = UDim.new(1, 0) ftCorner.Parent = fovSliderTrack
-local fovSliderFill = Instance.new("Frame") fovSliderFill.Size = UDim2.new((70-50)/70, 0, 1, 0) fovSliderFill.BackgroundColor3 = Color3.fromRGB(0, 255, 128) fovSliderFill.BorderSizePixel = 0 fovSliderFill.Parent = fovSliderTrack
-local ffCorner = Instance.new("UICorner") ffCorner.CornerRadius = UDim.new(1, 0) ffCorner.Parent = fovSliderFill
-local fovSliderBtn = Instance.new("TextButton") fovSliderBtn.Size = UDim2.new(0, 20, 0, 20) fovSliderBtn.Position = UDim2.new((70-50)/70, -10, 0, -7) fovSliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) fovSliderBtn.Text = "" fovSliderBtn.Parent = fovSliderTrack
-local fbCorner = Instance.new("UICorner") fbCorner.CornerRadius = UDim.new(1, 0) fbCorner.Parent = fovSliderBtn
-
-local fovSliding = false
-fovSliderBtn.MouseButton1Down:Connect(function() fovSliding = true end)
-UserInputService.InputEnded:Connect(function() fovSliding = false end)
-UserInputService.InputChanged:Connect(function(input)
-    if fovSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local pos = input.Position.X local absPos = fovSliderTrack.AbsolutePosition.X local absSize = fovSliderTrack.AbsoluteSize.X
-        local rel = math.clamp((pos - absPos) / absSize, 0, 1)
-        fovSliderFill.Size = UDim2.new(rel, 0, 1, 0) fovSliderBtn.Position = UDim2.new(rel, -10, 0, -7)
-        local targetFov = math.floor(rel * 70 + 50)
-        camera.FieldOfView = targetFov
-        if currentLang == "TR" then fovSliderLabel.Text = "Kamera Görüş Açısı (FOV): " .. targetFov
-        elseif currentLang == "EN" then fovSliderLabel.Text = "Camera FOV: " .. targetFov
-        else fovSliderLabel.Text = "Ugol obzora (FOV): " .. targetFov end
-    end
-end)
-
-addToggleButton(pageSettings, "Hızlı Otomatik Yeniden Doğuş", "Quick Auto Respawn", "Bystroe avto-vozrozhdenie", function(state)
-    if state then
-        pcall(function()
-            localPlayer.CharacterAdded:Connect(function(char)
-                local hum = char:WaitForChild("Humanoid")
-                hum.Died:Connect(function() task.wait(0.5) pcall(function() localPlayer:LoadCharacter() end) end)
-            end)
-        end)
-    end
-end)
-
-perfBtn = Instance.new("TextButton") perfBtn.Size = UDim2.new(0, 410, 0, 35) perfBtn.BackgroundColor3 = Color3.fromRGB(100, 80, 0) perfBtn.BorderSizePixel = 0 perfBtn.TextColor3 = Color3.fromRGB(255, 255, 255) perfBtn.TextSize = 13 perfBtn.Font = Enum.Font.Code perfBtn.Text = "Performans Artırıcı [ KAPALI ]" perfBtn.Parent = pageSettings
-local pfc = Instance.new("UICorner") pfc.CornerRadius = UDim.new(0, 4) pfc.Parent = perfBtn
-
-local performanceActive = false
-perfBtn.MouseButton1Click:Connect(function()
-    playClickSound()
-    performanceActive = not performanceActive
-    pcall(function()
-        if performanceActive then
-            perfBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 60)
-            perfBtn.Text = (currentLang == "TR") and "Performans Artırıcı [ AÇIK ]" or ((currentLang == "EN") and "Performance Booster [ ON ]" or "Ускоритель [ ВКЛ ]")
-            Lighting.GlobalShadows = false Lighting.Brightness = 2
-            for _, v in pairs(Workspace:GetDescendants()) do if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic v.Reflectance = 0 end end
-        else
-            perfBtn.BackgroundColor3 = Color3.fromRGB(100, 80, 0)
-            perfBtn.Text = (currentLang == "TR") and "Performans Artırıcı [ KAPALI ]" or ((currentLang == "EN") and "Performance Booster [ OFF ]" or "Ускоритель [ ВЫКЛ ]")
-            Lighting.GlobalShadows = true Lighting.Brightness = 1
-            for _, v in pairs(Workspace:GetDescendants()) do if v:IsA("BasePart") then v.Material = Enum.Material.Plastic v.Reflectance = 0 end end
-        end
-    end)
-end)
-
-panicBtn = Instance.new("TextButton") panicBtn.Size = UDim2.new(0, 410, 0, 35) panicBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0) panicBtn.BorderSizePixel = 0 panicBtn.TextColor3 = Color3.fromRGB(255, 255, 255) panicBtn.TextSize = 13 panicBtn.Font = Enum.Font.Code panicBtn.Text = "Acil Durum Tuşu (Menüyü Gizle)" panicBtn.Parent = pageSettings
-local pnc = Instance.new("UICorner") pnc.CornerRadius = UDim.new(0, 4) pnc.Parent = panicBtn
-panicBtn.MouseButton1Click:Connect(function() playClickSound() mainFrame.Visible = false toggleBtn.Visible = not toggleBtn.Visible end)
-
--- 6. INFO TAB
-local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 1, -20)
-infoLabel.BackgroundTransparency = 1
-infoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-infoLabel.TextSize = 13
-infoLabel.Font = Enum.Font.Code
-infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-infoLabel.TextYAlignment = Enum.TextYAlignment.Top
-infoLabel.TextWrapped = true
-infoLabel.Text = [[=== MENÜ BİLGİSİ ===
-
-Yazar / Oluşturan: black
-Sürüm: v9.47 Ultimate (Tam Dil Senkronizasyonu)
-Oyun: You vs Hulk
-
---- DURUM ---
-• Rusça ve diğer diller seçildiğinde tüm menü öğeleri anında güncellenir.
-]]
-infoLabel.Parent = pageInfo
+                local onSuffix = (langCode == "TR
