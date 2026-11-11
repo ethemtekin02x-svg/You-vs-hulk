@@ -9,10 +9,29 @@ local Lighting = game:GetService("Lighting")
 local SoundService = game:GetService("SoundService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local InsertService = game:GetService("InsertService")
+local TextChatService = game:GetService("TextChatService")
+local TeleportService = game:GetService("TeleportService")
 
 local localPlayer = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local mouse = localPlayer:GetMouse()
+
+-- OTOMATİK OYUN KONTROLÜ VE ID ENTEGRASYONU
+local TARGET_PLACE_ID = 101527854251487 -- You vs Hulk Oyun ID'si Tam Oturdu!
+local autoTpActive = false
+
+-- Script çalıştırıldığı an eğer başka oyundaysan ve özellik aktifse direkt You vs Hulk'a atar
+task.spawn(function()
+    task.wait(1)
+    if game.PlaceId ~= TARGET_PLACE_ID then
+        pcall(function()
+            TeleportService:Teleport(TARGET_PLACE_ID, localPlayer)
+        end)
+    end
+end)
+
+-- Dil Sistemi (Varsayılan Türkçe)
+local currentLang = "TR"
 
 -- ScreenGui (CoreGui Öncelikli Güvenli Yükleme)
 local targetParent = pcall(function() return CoreGui end) and CoreGui or localPlayer:WaitForChild("PlayerGui")
@@ -127,7 +146,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 35)
 titleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 titleLabel.BorderSizePixel = 0
-titleLabel.Text = "  YOU VS HULK — ULTIMATE MOD MENU (v9.20)"
+titleLabel.Text = "  YOU VS HULK — ULTIMATE MOD MENU (v9.32)"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 13
 titleLabel.Font = Enum.Font.Code
@@ -189,7 +208,7 @@ local function createTab(name)
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
     page.Visible = false
-    page.CanvasSize = UDim2.new(0, 0, 0, 850)
+    page.CanvasSize = UDim2.new(0, 0, 0, 950)
     page.ScrollBarThickness = 4
     page.Parent = contentFrame
 
@@ -238,7 +257,7 @@ watermarkText.BackgroundTransparency = 1
 watermarkText.TextColor3 = Color3.fromRGB(0, 255, 128)
 watermarkText.TextSize = 11
 watermarkText.Font = Enum.Font.Code
-watermarkText.Text = "black | v9.20 Ultimate"
+watermarkText.Text = "black | v9.32 Ultimate"
 watermarkText.Parent = watermarkFrame
 
 -- UI HELPER FUNCTIONS
@@ -269,41 +288,6 @@ local function addToggleButton(parent, text, callback)
         callback(active)
     end)
     return btn
-end
-
-local function createFeatureWidget(featureName, callback)
-    local widget = Instance.new("TextButton")
-    widget.Size = UDim2.new(0, 95, 0, 45)
-    widget.Position = UDim2.new(0.5, -47, 0.5, -22)
-    widget.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    widget.BorderColor3 = Color3.fromRGB(0, 255, 128)
-    widget.BorderSizePixel = 2
-    widget.TextColor3 = Color3.fromRGB(255, 255, 255)
-    widget.TextSize = 10
-    widget.Font = Enum.Font.Code
-    widget.Text = featureName .. "\n[ OFF ]"
-    widget.Parent = screenGui
-    
-    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 4) c.Parent = widget
-    makeDraggable(widget)
-    
-    local active = false
-    local clicks = 0
-    widget.MouseButton1Click:Connect(function()
-        playClickSound()
-        clicks = clicks + 1
-        task.delay(0.3, function() clicks = 0 end)
-        if clicks >= 2 then widget:Destroy() return end
-        active = not active
-        if active then
-            widget.BackgroundColor3 = Color3.fromRGB(0, 100, 50)
-            widget.Text = featureName .. "\n[ ON ] (Dbl-tap del)"
-        else
-            widget.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            widget.Text = featureName .. "\n[ OFF ] (Dbl-tap del)"
-        end
-        callback(active)
-    end)
 end
 
 -- 1. MAIN & COMBAT
@@ -356,21 +340,6 @@ RunService.RenderStepped:Connect(function()
 end)
 
 local maxCombatDist = 150
-local widgetBtn1 = Instance.new("TextButton")
-widgetBtn1.Size = UDim2.new(0, 410, 0, 35)
-widgetBtn1.BackgroundColor3 = Color3.fromRGB(0, 80, 80)
-widgetBtn1.BorderSizePixel = 0
-widgetBtn1.TextColor3 = Color3.fromRGB(255, 255, 255)
-widgetBtn1.TextSize = 13
-widgetBtn1.Font = Enum.Font.Code
-widgetBtn1.Text = "Spawn Aimbot Floating Widget"
-widgetBtn1.Parent = pageMain
-local wc1 = Instance.new("UICorner") wc1.CornerRadius = UDim.new(0, 4) wc1.Parent = widgetBtn1
-widgetBtn1.MouseButton1Click:Connect(function()
-    playClickSound()
-    createFeatureWidget("Aimbot Quick", function(state) aimbotActive = state end)
-end)
-
 RunService.RenderStepped:Connect(function()
     local targetHulk = nil
     local shortestDist = math.huge
@@ -439,6 +408,7 @@ RunService.RenderStepped:Connect(function()
         end)
     end
 end)
+
 -- 2. ESP TAB
 local espKalanlarActive = false
 local espHulkActive = false
@@ -467,21 +437,6 @@ local c1 = Instance.new("Frame") c1.Size = UDim2.new(1, 0, 0, 2) c1.Position = U
 local c2 = Instance.new("Frame") c2.Size = UDim2.new(0, 2, 1, 0) c2.Position = UDim2.new(0.5, -1, 0, 0) c2.BackgroundColor3 = Color3.fromRGB(0, 255, 128) c2.BorderSizePixel = 0 c2.Parent = crosshairFrame
 
 addToggleButton(pageVisuals, "Custom Crosshair", function(state) crosshairFrame.Visible = state end)
-
-local widgetBtn2 = Instance.new("TextButton")
-widgetBtn2.Size = UDim2.new(0, 410, 0, 35)
-widgetBtn2.BackgroundColor3 = Color3.fromRGB(0, 80, 80)
-widgetBtn2.BorderSizePixel = 0
-widgetBtn2.TextColor3 = Color3.fromRGB(255, 255, 255)
-widgetBtn2.TextSize = 13
-widgetBtn2.Font = Enum.Font.Code
-widgetBtn2.Text = "Spawn ESP Floating Widget"
-widgetBtn2.Parent = pageVisuals
-local wc2 = Instance.new("UICorner") wc2.CornerRadius = UDim.new(0, 4) wc2.Parent = widgetBtn2
-widgetBtn2.MouseButton1Click:Connect(function()
-    playClickSound()
-    createFeatureWidget("ESP Quick", function(state) espHulkActive = state espKalanlarActive = state end)
-end)
 
 RunService.RenderStepped:Connect(function()
     pcall(function()
@@ -604,6 +559,33 @@ addToggleButton(pageMovement, "Noclip", function(state) noclipActive = state end
 local infJumpActive = false
 addToggleButton(pageMovement, "Infinite Jump (Air Jump)", function(state) infJumpActive = state end)
 
+local lowGravityActive = false
+addToggleButton(pageMovement, "Low Gravity (Moon Jump)", function(state) lowGravityActive = state end)
+
+local function createButton(parent, name, color, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 410, 0, 35)
+    btn.BackgroundColor3 = color
+    btn.BorderSizePixel = 0
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+    btn.Font = Enum.Font.Code
+    btn.Text = name
+    btn.Parent = parent
+    local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 4) corner.Parent = btn
+    btn.MouseButton1Click:Connect(function() playClickSound() callback() end)
+end
+
+createButton(pageMovement, "⚡ Blink (Instant Forward Teleport)", Color3.fromRGB(0, 120, 120), function()
+    pcall(function()
+        local char = localPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local root = char.HumanoidRootPart
+            root.CFrame = root.CFrame + (camera.CFrame.LookVector * 25)
+        end
+    end)
+end)
+
 UserInputService.JumpRequest:Connect(function()
     if infJumpActive then
         pcall(function()
@@ -614,6 +596,7 @@ UserInputService.JumpRequest:Connect(function()
         end)
     end
 end)
+
 -- FLY HIZ AYARI (FLY SPEED SLIDER)
 local flySpeedVal = 50
 local flySpeedFrame = Instance.new("Frame")
@@ -685,6 +668,7 @@ addToggleButton(pageMovement, "ShiftLock Smooth Fly", function(state)
     flyActive = state
 end)
 
+-- HAREKET MOTORU
 RunService.RenderStepped:Connect(function()
     if flyActive and localPlayer.Character then
         pcall(function()
@@ -695,11 +679,11 @@ RunService.RenderStepped:Connect(function()
                 local camCFrame = camera.CFrame
                 local moveDir = humanoid.MoveDirection
                 
+                local velocity = Vector3.new(0, 0, 0)
                 if moveDir.Magnitude > 0 then
-                    root.Velocity = camCFrame.LookVector * (moveDir.Z * -flySpeedVal) + camCFrame.RightVector * (moveDir.X * flySpeedVal) + Vector3.new(0, 0, 0)
-                else
-                    root.Velocity = Vector3.new(0, 0, 0)
+                    velocity = (camCFrame.LookVector * moveDir.Z + camCFrame.RightVector * moveDir.X) * flySpeedVal
                 end
+                root.AssemblyLinearVelocity = velocity
                 root.CFrame = CFrame.new(root.Position, root.Position + camCFrame.LookVector)
             end
         end)
@@ -715,36 +699,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-local widgetBtnFly = Instance.new("TextButton")
-widgetBtnFly.Size = UDim2.new(0, 410, 0, 35)
-widgetBtnFly.BackgroundColor3 = Color3.fromRGB(0, 90, 60)
-widgetBtnFly.BorderSizePixel = 0
-widgetBtnFly.TextColor3 = Color3.fromRGB(255, 255, 255)
-widgetBtnFly.TextSize = 13
-widgetBtnFly.Font = Enum.Font.Code
-widgetBtnFly.Text = "Spawn Fly Floating Widget"
-widgetBtnFly.Parent = pageMovement
-local wcf = Instance.new("UICorner") wcf.CornerRadius = UDim.new(0, 4) wcf.Parent = widgetBtnFly
-widgetBtnFly.MouseButton1Click:Connect(function()
-    playClickSound()
-    createFeatureWidget("Fly Quick", function(state) flyActive = state end)
-end)
-
-local widgetBtn3 = Instance.new("TextButton")
-widgetBtn3.Size = UDim2.new(0, 410, 0, 35)
-widgetBtn3.BackgroundColor3 = Color3.fromRGB(80, 0, 80)
-widgetBtn3.BorderSizePixel = 0
-widgetBtn3.TextColor3 = Color3.fromRGB(255, 255, 255)
-widgetBtn3.TextSize = 13
-widgetBtn3.Font = Enum.Font.Code
-widgetBtn3.Text = "Spawn Speed Floating Widget"
-widgetBtn3.Parent = pageMovement
-local wc3 = Instance.new("UICorner") wc3.CornerRadius = UDim.new(0, 4) wc3.Parent = widgetBtn3
-widgetBtn3.MouseButton1Click:Connect(function()
-    playClickSound()
-    createFeatureWidget("Speed Quick", function(state) speedActive = state end)
-end)
-
 RunService.Heartbeat:Connect(function()
     pcall(function()
         if localPlayer.Character then
@@ -755,31 +709,22 @@ RunService.Heartbeat:Connect(function()
                     if part:IsA("BasePart") then part.CanCollide = false end
                 end
             end
+            if lowGravityActive then
+                workspace.Gravity = 30
+            else
+                workspace.Gravity = 196.2
+            end
         end
     end)
 end)
 
 -- 4. TP & SPAWNER TAB
-local function createButton(name, color, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 410, 0, 35)
-    btn.BackgroundColor3 = color
-    btn.BorderSizePixel = 0
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
-    btn.Font = Enum.Font.Code
-    btn.Text = name
-    btn.Parent = pageWorld
-    local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 4) corner.Parent = btn
-    btn.MouseButton1Click:Connect(function() playClickSound() callback() end)
-end
-
-createButton("Teleport to Safe Zone", Color3.fromRGB(0, 100, 200), function()
+createButton(pageWorld, "Teleport to Safe Zone", Color3.fromRGB(0, 100, 200), function()
     local char = localPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.CFrame = CFrame.new(0, 150, 0) end
 end)
 
-createButton("TP to Random Chest", Color3.fromRGB(180, 120, 0), function()
+createButton(pageWorld, "TP to Random Chest", Color3.fromRGB(180, 120, 0), function()
     local chests = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
         local name = obj.Name:lower()
@@ -796,7 +741,7 @@ createButton("TP to Random Chest", Color3.fromRGB(180, 120, 0), function()
     end
 end)
 
--- CHAT OBJECT SPAWNER
+-- OBJECT SPAWNER
 local spawnerBoxFrame = Instance.new("Frame")
 spawnerBoxFrame.Size = UDim2.new(0, 410, 0, 155)
 spawnerBoxFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -812,7 +757,7 @@ spawnerTitle.BackgroundTransparency = 1
 spawnerTitle.TextColor3 = Color3.fromRGB(0, 255, 128)
 spawnerTitle.TextSize = 12
 spawnerTitle.Font = Enum.Font.Code
-spawnerTitle.Text = "  [ CHAT OBJECT SPAWNER (AUTO LOOP & SPEED) ]"
+spawnerTitle.Text = "  [ OBJECT / MODEL SPAWNER (AUTO LOOP) ]"
 spawnerTitle.TextXAlignment = Enum.TextXAlignment.Left
 spawnerTitle.Parent = spawnerBoxFrame
 
@@ -950,7 +895,6 @@ local function spawnTargetObject(nameOrId)
         end
     end)
 end
-
 spawnToggleBtn.MouseButton1Click:Connect(function()
     playClickSound()
     spawnActiveLoop = not spawnActiveLoop
@@ -973,6 +917,67 @@ spawnToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- CHAT MESSAGE SENDER
+local chatBoxFrame = Instance.new("Frame")
+chatBoxFrame.Size = UDim2.new(0, 410, 0, 90)
+chatBoxFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+chatBoxFrame.BorderColor3 = Color3.fromRGB(0, 255, 128)
+chatBoxFrame.BorderSizePixel = 1
+chatBoxFrame.Parent = pageWorld
+
+local cbCorner = Instance.new("UICorner") cbCorner.CornerRadius = UDim.new(0, 4) cbCorner.Parent = chatBoxFrame
+
+local chatTitle = Instance.new("TextLabel")
+chatTitle.Size = UDim2.new(1, 0, 0, 25)
+chatTitle.BackgroundTransparency = 1
+chatTitle.TextColor3 = Color3.fromRGB(0, 255, 128)
+chatTitle.TextSize = 12
+chatTitle.Font = Enum.Font.Code
+chatTitle.Text = "  [ REAL CHAT MESSAGE SENDER ]"
+chatTitle.TextXAlignment = Enum.TextXAlignment.Left
+chatTitle.Parent = chatBoxFrame
+
+local chatInput = Instance.new("TextBox")
+chatInput.Size = UDim2.new(0, 275, 0, 35)
+chatInput.Position = UDim2.new(0, 8, 0, 35)
+chatInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+chatInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+chatInput.TextSize = 12
+chatInput.Font = Enum.Font.Code
+chatInput.PlaceholderText = "Sohbete yazılacak mesajı yaz..."
+chatInput.Text = ""
+chatInput.Parent = chatBoxFrame
+
+local ciCorner = Instance.new("UICorner") ciCorner.CornerRadius = UDim.new(0, 4) ciCorner.Parent = chatInput
+
+local sendChatBtn = Instance.new("TextButton")
+sendChatBtn.Size = UDim2.new(0, 110, 0, 35)
+sendChatBtn.Position = UDim2.new(0, 290, 0, 35)
+sendChatBtn.BackgroundColor3 = Color3.fromRGB(0, 90, 60)
+sendChatBtn.BorderSizePixel = 0
+sendChatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+sendChatBtn.TextSize = 12
+sendChatBtn.Font = Enum.Font.Code
+sendChatBtn.Text = "Send Chat"
+sendChatBtn.Parent = chatBoxFrame
+
+local scCorner = Instance.new("UICorner") scCorner.CornerRadius = UDim.new(0, 4) scCorner.Parent = sendChatBtn
+
+sendChatBtn.MouseButton1Click:Connect(function()
+    playClickSound()
+    local msg = chatInput.Text
+    if msg ~= "" then
+        pcall(function()
+            if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+                local channel = TextChatService.TextChannels.RBXGeneral
+                channel:SendAsync(msg)
+            else
+                game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents"):FindFirstChild("SayMessageRequest"):FireServer(msg, "All")
+            end
+        end)
+    end
+end)
+
 -- 5. SETTINGS TAB
 local function createSettingsHeader(text)
     local lbl = Instance.new("TextLabel")
@@ -985,6 +990,55 @@ local function createSettingsHeader(text)
     lbl.Text = "--- " .. text .. " ---"
     lbl.Parent = pageSettings
 end
+
+createSettingsHeader("AUTO TELEPORT (YOU VS HULK)")
+
+addToggleButton(pageSettings, "Auto Teleport to You vs Hulk", function(state)
+    autoTpActive = state
+    if autoTpActive and game.PlaceId ~= TARGET_PLACE_ID then
+        pcall(function()
+            TeleportService:Teleport(TARGET_PLACE_ID, localPlayer)
+        end)
+    end
+end)
+
+createSettingsHeader("LANGUAGE / DİL SEÇİMİ")
+
+local langPickerFrame = Instance.new("Frame")
+langPickerFrame.Size = UDim2.new(0, 410, 0, 45)
+langPickerFrame.BackgroundTransparency = 1
+langPickerFrame.Parent = pageSettings
+
+local lpLayout = Instance.new("UIListLayout")
+lpLayout.FillDirection = Enum.FillDirection.Horizontal
+lpLayout.Padding = UDim.new(0, 10)
+lpLayout.Parent = langPickerFrame
+
+local function addLangOption(langCode, flagText, langName)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 200, 0, 40)
+    b.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    b.Text = flagText .. " " .. langName
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextSize = 12
+    b.Font = Enum.Font.Code
+    b.Parent = langPickerFrame
+    
+    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 4) c.Parent = b
+    
+    b.MouseButton1Click:Connect(function()
+        playClickSound()
+        currentLang = langCode
+        if langCode == "TR" then
+            titleLabel.Text = "  YOU VS HULK — ULTIMATE MOD MENU (v9.32 [TÜRKÇE])"
+        else
+            titleLabel.Text = "  YOU VS HULK — ULTIMATE MOD MENU (v9.32 [ENGLISH])"
+        end
+    end)
+end
+
+addLangOption("TR", "🇹🇷", "Türkçe")
+addLangOption("EN", "🇬🇧", "English")
 
 createSettingsHeader("APPEARANCE & THEME")
 
@@ -1059,6 +1113,7 @@ soundBtn.MouseButton1Click:Connect(function()
     soundEffectsEnabled = not soundEffectsEnabled
     if soundEffectsEnabled then soundBtn.Text = "🔊 Sound Effects: On" playClickSound() else soundBtn.Text = "🔇 Sound Effects: Off" end
 end)
+
 -- FOV Slider
 local fovSliderFrame = Instance.new("Frame")
 fovSliderFrame.Size = UDim2.new(0, 410, 0, 50)
@@ -1204,11 +1259,11 @@ infoLabel.TextWrapped = true
 infoLabel.Text = [[=== MENU INFORMATION ===
 
 Author / Creator: black
-Version: v9.20 Ultimate (CoreGui Forced & Insert Key Hotkey)
+Version: v9.32 Ultimate (Place ID Integrated)
 Game: You vs Hulk
 
 --- STATUS ---
-• CoreGui injection prioritized so it bypasses UI hiding.
-• Press 'Insert' key on your keyboard if the menu button is hidden.
+• Exact Place ID (101527854251487) hardcoded.
+• Auto-Teleport redirects you instantly to You vs Hulk from any other game.
 ]]
 infoLabel.Parent = pageInfo
