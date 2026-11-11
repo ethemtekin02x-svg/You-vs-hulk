@@ -141,7 +141,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 35)
 titleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 titleLabel.BorderSizePixel = 0
-titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.40)"
+titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.43)"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 13
 titleLabel.Font = Enum.Font.Code
@@ -259,7 +259,7 @@ watermarkText.BackgroundTransparency = 1
 watermarkText.TextColor3 = Color3.fromRGB(0, 255, 128)
 watermarkText.TextSize = 11
 watermarkText.Font = Enum.Font.Code
-watermarkText.Text = "black | v9.40 Ultimate"
+watermarkText.Text = "black | v9.43 Ultimate"
 watermarkText.Parent = watermarkFrame
 
 -- TRANSLATABLE BUTTON REGISTRY
@@ -397,9 +397,11 @@ local espHulkActive = false
 addToggleButton(pageVisuals, "Oyuncu ESP", "Players ESP", "ESP Игроков", function(state) espKalanlarActive = state end)
 addToggleButton(pageVisuals, "Hulk ESP", "Hulk ESP", "ESP Халка", function(state) espHulkActive = state end)
 
+-- FOV Çemberi (Tam Merkez Hizalı / Perfect Center)
 local fovFrame = Instance.new("Frame")
 fovFrame.Size = UDim2.new(0, 200, 0, 200)
-fovFrame.Position = UDim2.new(0.5, -100, 0.5, -100)
+fovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+fovFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 fovFrame.BackgroundTransparency = 1
 fovFrame.Visible = false
 fovFrame.Parent = screenGui
@@ -408,9 +410,11 @@ local fovStroke = Instance.new("UIStroke") fovStroke.Thickness = 1.5 fovStroke.C
 
 addToggleButton(pageVisuals, "FOV Çemberi", "FOV Circle", "Круг FOV", function(state) fovFrame.Visible = state end)
 
+-- Özel Nişangah (Crosshair - Tam Merkez Hizalı)
 local crosshairFrame = Instance.new("Frame")
 crosshairFrame.Size = UDim2.new(0, 10, 0, 10)
-crosshairFrame.Position = UDim2.new(0.5, -5, 0.5, -5)
+crosshairFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+crosshairFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 crosshairFrame.BackgroundTransparency = 1
 crosshairFrame.Visible = false
 crosshairFrame.Parent = screenGui
@@ -557,7 +561,18 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 local flyActive = false
-addToggleButton(pageMovement, "Fly", "Fly", "Полет (Fly)", function(state) flyActive = state end)
+addToggleButton(pageMovement, "Fly", "Fly", "Полет (Fly)", function(state)
+    flyActive = state
+    pcall(function()
+        if flyActive and localPlayer.Character then
+            local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then humanoid.PlatformStand = true end
+        elseif localPlayer.Character then
+            local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then humanoid.PlatformStand = false end
+        end
+    end)
+end)
 
 -- FREE CAMERA SYSTEM
 local freeCamActive = false
@@ -612,13 +627,6 @@ RunService.RenderStepped:Connect(function()
                 end
                 root.AssemblyLinearVelocity = velocity
                 root.CFrame = CFrame.new(root.Position, root.Position + camCFrame.LookVector)
-            end
-        end)
-    else
-        pcall(function()
-            if localPlayer.Character and not freeCamActive then
-                local humanoid = localPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then humanoid.PlatformStand = false end
             end
         end)
     end
@@ -782,7 +790,6 @@ local function spawnTargetObject(nameOrId)
         end
     end)
 end
-
 spawnToggleBtn.MouseButton1Click:Connect(function()
     playClickSound()
     spawnActiveLoop = not spawnActiveLoop
@@ -801,6 +808,7 @@ spawnToggleBtn.MouseButton1Click:Connect(function()
         spawnToggleBtn.Text = "Spawner [ OFF ]"
     end
 end)
+
 -- CHAT MESSAGE SENDER & AUTO LOOP (SOHBET SPAMMER)
 local chatBoxFrame = Instance.new("Frame")
 chatBoxFrame.Size = UDim2.new(0, 410, 0, 115)
@@ -881,7 +889,7 @@ sendChatBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- 5. SETTINGS TAB
+-- 5. SETTINGS TAB (MUSIC PLAYER INTEGRATED)
 local function createSettingsHeader(textTR, textEN, textRU)
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(0, 410, 0, 25)
@@ -897,6 +905,7 @@ local function createSettingsHeader(textTR, textEN, textRU)
     lbl:SetAttribute("TextEN", textEN)
     lbl:SetAttribute("TextRU", textRU)
     table.insert(translatableElements, lbl)
+    return lbl
 end
 
 createSettingsHeader("OTOMATİK IŞINLANMA (YOU VS HULK)", "AUTO TELEPORT (YOU VS HULK)", "АВТО-ТЕЛЕПОРТ (YOU VS HULK)")
@@ -904,6 +913,51 @@ createSettingsHeader("OTOMATİK IŞINLANMA (YOU VS HULK)", "AUTO TELEPORT (YOU V
 addToggleButton(pageSettings, "Otomatik You vs Hulk'a Git", "Auto Teleport to You vs Hulk", "Авто-телепорт в You vs Hulk", function(state)
     if state and game.PlaceId ~= TARGET_PLACE_ID then
         pcall(function() TeleportService:Teleport(TARGET_PLACE_ID, localPlayer) end)
+    end
+end)
+
+-- MÜZİK ÇALAR (MUSIC PLAYER) BÖLÜMÜ
+createSettingsHeader("ARKAPLAN MÜZİĞİ (IT'S RAINING TACOS)", "BACKGROUND MUSIC (IT'S RAINING TACOS)", "ФОНОВАЯ МУЗЫКА")
+
+local backgroundMusic = Instance.new("Sound")
+backgroundMusic.Name = "UltimateBackgroundMusic"
+backgroundMusic.SoundId = "rbxassetid://142376088"
+backgroundMusic.Volume = 0.5
+backgroundMusic.Looped = true
+backgroundMusic.Parent = SoundService
+
+addToggleButton(pageSettings, "Müziği Başlat / Durdur", "Play / Stop Music", "Воспроизвести / Остановить музыку", function(state)
+    if state then
+        pcall(function() backgroundMusic:Play() end)
+    else
+        pcall(function() backgroundMusic:Stop() end)
+    end
+end)
+
+-- Müzik Ses Seviyesi Slider
+local musicSliderFrame = Instance.new("Frame") musicSliderFrame.Size = UDim2.new(0, 410, 0, 50) musicSliderFrame.BackgroundTransparency = 1 musicSliderFrame.Parent = pageSettings
+local musicSliderLabel = Instance.new("TextLabel") musicSliderLabel.Size = UDim2.new(1, 0, 0, 20) musicSliderLabel.BackgroundTransparency = 1 musicSliderLabel.Text = "Müzik Ses Seviyesi: 50%" musicSliderLabel.TextColor3 = Color3.fromRGB(200, 200, 200) musicSliderLabel.TextSize = 12 musicSliderLabel.Font = Enum.Font.Code musicSliderLabel.TextXAlignment = Enum.TextXAlignment.Left musicSliderLabel.Parent = musicSliderFrame
+
+local musicSliderTrack = Instance.new("Frame") musicSliderTrack.Size = UDim2.new(1, 0, 0, 6) musicSliderTrack.Position = UDim2.new(0, 0, 0, 30) musicSliderTrack.BackgroundColor3 = Color3.fromRGB(50, 50, 50) musicSliderTrack.BorderSizePixel = 0 musicSliderTrack.Parent = musicSliderFrame
+local mtCorner = Instance.new("UICorner") mtCorner.CornerRadius = UDim.new(1, 0) mtCorner.Parent = musicSliderTrack
+local musicSliderFill = Instance.new("Frame") musicSliderFill.Size = UDim2.new(0.5, 0, 1, 0) musicSliderFill.BackgroundColor3 = Color3.fromRGB(0, 255, 128) musicSliderFill.BorderSizePixel = 0 musicSliderFill.Parent = musicSliderTrack
+local mfCorner = Instance.new("UICorner") mfCorner.CornerRadius = UDim.new(1, 0) mfCorner.Parent = musicSliderFill
+local musicSliderBtn = Instance.new("TextButton") musicSliderBtn.Size = UDim2.new(0, 20, 0, 20) musicSliderBtn.Position = UDim2.new(0.5, -10, 0, -7) musicSliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255) musicSliderBtn.Text = "" musicSliderBtn.Parent = musicSliderTrack
+local mbCorner = Instance.new("UICorner") mbCorner.CornerRadius = UDim.new(1, 0) mbCorner.Parent = musicSliderBtn
+
+local musicSliding = false
+musicSliderBtn.MouseButton1Down:Connect(function() musicSliding = true end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then musicSliding = false end end)
+UserInputService.InputChanged:Connect(function(input)
+    if musicSliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local pos = input.Position.X local absPos = musicSliderTrack.AbsolutePosition.X local absSize = musicSliderTrack.AbsoluteSize.X
+        local rel = math.clamp((pos - absPos) / absSize, 0, 1)
+        musicSliderFill.Size = UDim2.new(rel, 0, 1, 0) musicSliderBtn.Position = UDim2.new(rel, -10, 0, -7)
+        backgroundMusic.Volume = rel
+        local volPercent = math.floor(rel * 100)
+        if currentLang == "TR" then musicSliderLabel.Text = "Müzik Ses Seviyesi: " .. volPercent .. "%"
+        elseif currentLang == "EN" then musicSliderLabel.Text = "Music Volume: " .. volPercent .. "%"
+        else musicSliderLabel.Text = "Громкость музыки: " .. volPercent .. "%" end
     end
 end)
 
@@ -915,11 +969,11 @@ local lpLayout = Instance.new("UIListLayout") lpLayout.FillDirection = Enum.Fill
 local function updateLanguage(langCode)
     currentLang = langCode
     if langCode == "TR" then
-        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.40 [TÜRKÇE])"
+        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.43 [TÜRKÇE])"
     elseif langCode == "EN" then
-        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.40 [ENGLISH])"
+        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.43 [ENGLISH])"
     else
-        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.40 [РУССКИЙ])"
+        titleLabel.Text = "  YOU VS HULK | ULTIMATE MOD MENU (v9.43 [РУССКИЙ])"
     end
 
     for _, btn in pairs(tabButtons) do
@@ -939,9 +993,7 @@ local function updateLanguage(langCode)
                 el.Text = base
             end
         elseif el:IsA("TextLabel") then
-            local lblBase = el:GetAttribute("TextTR")
-            if langCode == "EN" then lblBase = el:GetAttribute("TextEN")
-            elseif langCode == "RU" then lblBase = el:GetAttribute("TextRU") end
+            local lblBase = (langCode == "TR") and el:GetAttribute("TextTR") or ((langCode == "EN") and el:GetAttribute("TextEN") or el:GetAttribute("TextRU"))
             el.Text = "--- " .. lblBase .. " ---"
         end
     end
@@ -1064,11 +1116,11 @@ infoLabel.TextWrapped = true
 infoLabel.Text = [[=== MENU INFORMATION ===
 
 Author / Creator: black
-Version: v9.40 Ultimate (Real Country Flags Added)
+Version: v9.43 Ultimate (Music Player Added)
 Game: You vs Hulk
 
 --- STATUS ---
-• Real flag emojis (🇹🇷, 🇺🇸, 🇷🇺) integrated into language selectors.
-• Clean and sleek interface design maintained.
+• Background music player integrated with "It’s raining tacos" (ID: 142376088).
+• Fully adjustable music volume slider in Settings.
 ]]
 infoLabel.Parent = pageInfo
